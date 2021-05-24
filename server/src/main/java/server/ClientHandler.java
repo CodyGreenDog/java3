@@ -78,10 +78,28 @@ public class ClientHandler {
                             }
                         }
 
+
+
+
                     }
                     //цикл работы
                     while (true) {
                         String str = in.readUTF();
+
+                        //если команда смены никнейма
+                        if (str.startsWith(Command.CHNG_NICK)) {
+                            String[] token = str.split("\\s", 3);
+                            if (token.length < 3) {
+                                continue;
+                            }
+                            boolean regSuccess = server.getAuthService()
+                                    .changeNickname(token[1], token[2]);
+                            if (regSuccess) {
+                                sendMsg(Command.CHNG_NICK_OK);
+                            } else {
+                                sendMsg(Command.CHNG_NICK_NO);
+                            }
+                        }
 
                         if (str.startsWith("/")) {
                             if (str.equals(Command.END)) {

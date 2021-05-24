@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Vector;
@@ -21,15 +22,16 @@ public class Server {
     private DataOutputStream out;
 
     private List<ClientHandler> clients;
-    private AuthService authService;
+    private DataBaseAuthService authService;
 
     public Server() {
         clients = new CopyOnWriteArrayList<>();
-        authService = new SimpleAuthServise();
+        authService = new DataBaseAuthService();
 
         try {
             server = new ServerSocket(PORT);
             System.out.println("Server started");
+            authService.connect();
 
             while (true) {
                 socket = server.accept();
@@ -38,9 +40,16 @@ public class Server {
                 new ClientHandler(this, socket);
             }
 
-        } catch (IOException e) {
+        } catch (IOException | SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         } finally {
+
+            try {
+                authService.disconnect();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
             try {
                 socket.close();
             } catch (IOException e) {
