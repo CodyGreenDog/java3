@@ -19,11 +19,10 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -50,12 +49,15 @@ public class Controller implements Initializable {
 
     private boolean authenticated;
     private String nickname;
+    private String login;
     private String newNickname;
     private Stage stage;
     private Stage regStage;
     private Stage changeNicknameStage;
     private RegController regController;
     private ChangeNickController chnController;
+    private File logFile;
+    private OutputStream outStream;
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -68,6 +70,7 @@ public class Controller implements Initializable {
 
         if (!authenticated) {
             nickname = "";
+            login = "";
         }
         textArea.clear();
         setTitle(nickname);
@@ -125,6 +128,48 @@ public class Controller implements Initializable {
                             textArea.appendText(str + "\n");
                         }
                     }
+
+                    logFile = new File("history_" + login + ".txt");
+                    if(login != "" )
+                    {
+
+                        RandomAccessFile raFile = new RandomAccessFile( logFile, "r" );
+                        long fPos = raFile.length() - 1;
+
+                        if(fPos > 0)
+                        {
+
+                            final int MSG_VALUE = 100;
+                            int counter = 0;
+
+                            while( counter < MSG_VALUE + 1 && fPos >= 0) {
+                                raFile.seek(fPos--);
+                                byte ch = raFile.readByte();
+                                if( 0xA == ch ) {
+                                    counter++;
+                                }
+                            }
+
+                            fPos = fPos < 0 ? 0 : fPos + 2; // go to position after: "<any_char>\n"
+                            raFile.seek(fPos);
+
+                            StringBuffer stringBuffer = new StringBuffer();
+                            long size = raFile.length() - fPos;
+
+                            byte[] bArray = new byte[(int)size];
+                            raFile.read( bArray, (int)fPos, (int)size );
+                            String latestMessages = new String( bArray, StandardCharsets.UTF_8 );
+
+                            textArea.appendText( latestMessages );
+
+
+                        }
+                    }
+
+                    if(outStream == null) {
+                        outStream = new BufferedOutputStream( new FileOutputStream( logFile, true ));
+                    }
+
                     //цикл работы
                     while (true) {
                         String str = in.readUTF();
@@ -156,7 +201,11 @@ public class Controller implements Initializable {
                             }
 
                         } else {
-                            textArea.appendText(str + "\n");
+                            String msg = str + "\n";
+                            textArea.appendText(msg);
+
+                            outStream.write( msg.getBytes(StandardCharsets.UTF_8), 0, msg.getBytes().length );
+
                         }
                     }
                 } catch (RuntimeException e) {
@@ -166,6 +215,10 @@ public class Controller implements Initializable {
                 } finally {
                     setAuthenticated(false);
                     try {
+                        if(outStream != null) {
+                            outStream.flush();
+                            outStream.close();
+                        }
                         socket.close();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -197,7 +250,7 @@ public class Controller implements Initializable {
 
         try {
             out.writeUTF(String.format("%s %s %s", Command.AUTH, loginField.getText().trim(), passwordField.getText().trim()));
-
+            login = loginField.getText();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -253,6 +306,7 @@ public class Controller implements Initializable {
         }
         try {
             out.writeUTF(String.format("%s %s %s %s", Command.REG, login, password, nickname));
+
         } catch (IOException e) {
             e.printStackTrace();
         }
