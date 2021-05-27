@@ -26,8 +26,13 @@
     </HBox>
 
 
-    <HBox fx:id="msgPanel" visible="false" managed="false">
+    <VBox fx:id="msgPanel" visible="false" managed="false">
+        <HBox>
         <TextField fx:id="textField" HBox.hgrow="ALWAYS" promptText="input text" onAction="#sendMsg"/>
         <Button text="send" onAction="#sendMsg"/>
-    </HBox>
+        </HBox>
+
+        <Button text="Change nickname" onAction="#showChangeNicknameWindow"/>
+
+    </VBox>
 </VBox>

@@ -14,6 +14,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -37,7 +38,7 @@ public class Controller implements Initializable {
     @FXML
     public HBox authPanel;
     @FXML
-    public HBox msgPanel;
+    public VBox msgPanel;
     @FXML
     public ListView<String> clientList;
 
@@ -49,9 +50,12 @@ public class Controller implements Initializable {
 
     private boolean authenticated;
     private String nickname;
+    private String newNickname;
     private Stage stage;
     private Stage regStage;
+    private Stage changeNicknameStage;
     private RegController regController;
+    private ChangeNickController chnController;
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -125,6 +129,17 @@ public class Controller implements Initializable {
                     while (true) {
                         String str = in.readUTF();
 
+                        if(str.equals(Command.CHNG_NICK_OK)){
+                            chnController.setResultTryToChangeNickname(Command.CHNG_NICK_OK);
+                            nickname = newNickname;
+                            setTitle(nickname);
+                        }
+
+                        if(str.equals(Command.CHNG_NICK_NO)){
+                            chnController.setResultTryToChangeNickname(Command.CHNG_NICK_NO);
+
+                        }
+
                         if (str.startsWith("/")) {
                             if (str.equals(Command.END)) {
                                 System.out.println("Client disconnected");
@@ -173,6 +188,7 @@ public class Controller implements Initializable {
             e.printStackTrace();
         }
     }
+
 
     public void tryToAuth(ActionEvent actionEvent) {
         if (socket == null || socket.isClosed()) {
@@ -237,6 +253,41 @@ public class Controller implements Initializable {
         }
         try {
             out.writeUTF(String.format("%s %s %s %s", Command.REG, login, password, nickname));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public void showChangeNicknameWindow(ActionEvent actionEvent) {
+        if (changeNicknameStage == null) {
+            initChangeNicknameWindow();
+        }
+        changeNicknameStage.show();
+    }
+
+    private void initChangeNicknameWindow() {
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/chng_nick.fxml"));
+            Parent root = fxmlLoader.load();
+
+            chnController = fxmlLoader.getController();
+            chnController.setController(this);
+
+            changeNicknameStage = new Stage();
+            changeNicknameStage.setTitle("Enter new nickname");
+            changeNicknameStage.setScene(new Scene(root, 450, 350));
+            changeNicknameStage.initStyle(StageStyle.UTILITY);
+            changeNicknameStage.initModality(Modality.APPLICATION_MODAL);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void changeNickname(String nickname) {
+        try {
+            out.writeUTF(String.format("%s %s %s", Command.CHNG_NICK, this.nickname, nickname));
+            newNickname = nickname;
         } catch (IOException e) {
             e.printStackTrace();
         }
