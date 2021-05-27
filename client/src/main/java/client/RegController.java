@@ -43,4 +43,5 @@ public class RegController {
 
         controller.registration(login, password, nickname);
     }
+
 }
