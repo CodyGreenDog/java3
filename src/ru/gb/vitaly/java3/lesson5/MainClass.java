@@ -10,9 +10,14 @@ public class MainClass {
         Race race = new Race(new Road(60), new Tunnel(), new Road(40));
         Car[] cars = new Car[CARS_COUNT];
 
-        CyclicBarrier cb = new CyclicBarrier( CARS_COUNT + 1);
-        Semaphore rideThroughTunnel = new Semaphore(CARS_COUNT/2);
-        ArrayBlockingQueue<String> abq = new ArrayBlockingQueue<>( 1);
+        CyclicBarrier cb = new CyclicBarrier( CARS_COUNT + 1); //Заставляет стартовать машины одновременно
+                                                                     //и соблюдать песледовательность стадий гонки
+
+        Semaphore rideThroughTunnel = new Semaphore(CARS_COUNT/2); //Обеспечивает пропускную способность туннеля
+                                                                          //не больше половины участвующих машин
+
+        ArrayBlockingQueue<String> abq = new ArrayBlockingQueue<>( 1); //Добавляет в очередь сообщение
+                                                                             // о пересечении финишной черты
         for (int i = 0; i < CARS_COUNT; i++) {
             cars[i] =  new Car(race, 20 + (int) (Math.random() * 10), cb, rideThroughTunnel, abq);
         }
