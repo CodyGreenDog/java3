@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.logging.Logger;
 
 public class ClientHandler {
     private Server server;
@@ -16,7 +17,7 @@ public class ClientHandler {
     private String nickname;
     private String login;
 
-    public ClientHandler(Server server, Socket socket) {
+    public ClientHandler(Server server, Socket socket, Logger logger) {
         try {
             this.server = server;
             this.socket = socket;
@@ -35,6 +36,7 @@ public class ClientHandler {
                         //если команда отключиться
                         if (str.equals(Command.END)) {
                             out.writeUTF(Command.END);
+                            logger.info("Клиент захотел отключиться");
                             throw new RuntimeException("Клиент захотел отключиться");
                         }
 
@@ -56,15 +58,18 @@ public class ClientHandler {
                                             " connected with nick: " + nickname);
                                     break;
                                 } else {
+                                    logger.info("Данная учетная запись уже используется");
                                     sendMsg("Данная учетная запись уже используется");
                                 }
                             } else {
+                                logger.info("Неверный логин/пароль");
                                 sendMsg("Неверный логин / пароль");
                             }
                         }
 
                         //если команда регистрация
                         if (str.startsWith(Command.REG)) {
+                            logger.info("Клиент реистрируется");
                             String[] token = str.split("\\s", 4);
                             if (token.length < 4) {
                                 continue;
@@ -72,8 +77,10 @@ public class ClientHandler {
                             boolean regSuccess = server.getAuthService()
                                     .registration(token[1], token[2], token[3]);
                             if (regSuccess) {
+                                logger.info("Регистрация прошла успешно");
                                 sendMsg(Command.REG_OK);
                             } else {
+                                logger.info("Не удалось пройти регистрацию");
                                 sendMsg(Command.REG_NO);
                             }
                         }
@@ -88,6 +95,7 @@ public class ClientHandler {
 
                         //если команда смены никнейма
                         if (str.startsWith(Command.CHNG_NICK)) {
+                            logger.info("Клиент запрашивает смену ника");
                             String[] token = str.split("\\s", 3);
                             if (token.length < 3) {
                                 continue;
@@ -95,14 +103,17 @@ public class ClientHandler {
                             boolean regSuccess = server.getAuthService()
                                     .changeNickname(token[1], token[2]);
                             if (regSuccess) {
+                                logger.info("Смена ника прошла успешно");
                                 sendMsg(Command.CHNG_NICK_OK);
                             } else {
+                                logger.info("Не удалось сменить ник");
                                 sendMsg(Command.CHNG_NICK_NO);
                             }
                         }
 
                         if (str.startsWith("/")) {
                             if (str.equals(Command.END)) {
+                                logger.info("Клиент отключается");
                                 out.writeUTF(Command.END);
                                 break;
                             }
@@ -112,18 +123,23 @@ public class ClientHandler {
                                 if (token.length < 3) {
                                     continue;
                                 }
+                                logger.info("Клиент отправил приватное сообщение");
                                 server.privateMsg(this, token[1], token[2]);
                             }
                         } else {
+                            logger.info("Клиент отправил сообщение");
                             server.broadcastMsg(this, str);
                         }
                     }
                     //SocketTimeoutException
                 } catch (RuntimeException e) {
+                    logger.severe("Клиент аварийно завершил соединение");
                     System.out.println(e.getMessage());
                 } catch (IOException e) {
+                    logger.severe("Клиент аварийно завершил соединение");
                     e.printStackTrace();
                 } finally {
+                    logger.info("Клиент отключился");
                     server.unsubscribe(this);
                     System.out.println("Client disconnected: " + nickname);
                     try {
